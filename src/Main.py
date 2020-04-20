@@ -7,6 +7,7 @@ from dash.dependencies import Input, Output
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import plotly.express as px
+import plotly.figure_factory as ff
 
 DATA_FOLDER = '..\data'
 DATA_FILENAME = 'db.csv'
@@ -84,6 +85,7 @@ app.layout = html.Div([
     ]),
     html.Div(id='pie-tab'),
     html.Div(id='world-tab'),
+    html.Div(id='dendro-tab'),
 ])
 
 # @app.callback(
@@ -209,6 +211,45 @@ def display_world_chart(filtered_data, words):
         return html.Div([
             dcc.Graph(
                 id='world_map',
+                figure=fig
+            )
+        ])
+
+@app.callback(Output('dendro-tab', 'children'),
+              [Input('hidden_data', 'children'),
+               Input('wordList', 'value')])
+def display_tree(filtered_data, words):
+    if len(words):
+        filtered_data = pd.DataFrame(filtered_data)
+        taksony = filtered_data['takson w bazie']
+        filtered_data = filtered_data[['kraj', 'region', 'miejscowość']]
+        kraje = filtered_data['kraj']
+        regiony = filtered_data['region']
+        miejsca = filtered_data['miejscowość']
+        dict_kraje = {}
+        dict_regiony = {}
+        dict_miejsca = {}
+        for i, kraj in enumerate(kraje.values):
+            dict_kraje[kraj] = i
+        for i, region in enumerate(regiony.values):
+            dict_regiony[region] = i
+        for i, miejsc in enumerate(miejsca.values):
+            dict_miejsca[miejsc] = i
+
+        for key in dict_kraje.keys():
+            filtered_data['kraj'] = filtered_data['kraj'].replace(key, dict_kraje[key])
+        for key in dict_regiony.keys():
+            filtered_data['region'] = filtered_data['region'].replace(key, dict_regiony[key])
+        for key in dict_miejsca.keys():
+            filtered_data['miejscowość'] = filtered_data['miejscowość'].replace(key, dict_miejsca[key])
+
+        print(filtered_data)
+
+        fig = ff.create_dendrogram(filtered_data, labels=miejsca.values)
+
+        return html.Div([
+            dcc.Graph(
+                id='dendro_map',
                 figure=fig
             )
         ])
